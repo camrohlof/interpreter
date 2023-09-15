@@ -16,30 +16,29 @@ final class parser_test: XCTestCase {
         let foobar = 838383;
         """
         
-        let lexer = Lexer(input: input)
-        var parser = Parser(lexer: lexer)
-        let program = parser.parseProgram()
-        XCTAssertNotNil(program)
+        var parser = Parser(lexer: Lexer(input: input))
         if let program = parser.parseProgram(){
             XCTAssertEqual(program.statements.count, 3)
-        }
-        
-        let expectedIdentifiers: [String] = [
-            "x",
-            "y",
-            "foobar"
-        ]
-        
-        for (i,expectedIdentifier) in expectedIdentifiers.enumerated() {
-            if let stmt = program?.statements[i] {
-                if !testLetStatement(stmt, expectedIdentifier){
+            if program.statements.count != 3{
+                return
+            }
+            let expectedIdentifiers: [String] = [
+                "x",
+                "y",
+                "foobar"
+            ]
+            
+            for (i,expectedIdentifier) in expectedIdentifiers.enumerated() {
+                let stmt = program.statements[i]
+                if !TestLetStatement(stmt, expectedIdentifier){
                     return
                 }
+                
             }
         }
     }
     
-    func testLetStatement(_ stmt: Statement, _ name: String)->Bool{
+    func TestLetStatement(_ stmt: Statement, _ name: String)->Bool{
         guard stmt.tokenLiteral() == "let" else{
             XCTFail("tokenLiteral not 'let', got \(stmt.tokenLiteral())")
             return false
@@ -58,6 +57,44 @@ final class parser_test: XCTestCase {
             return false
         }
         return true
+    }
+    
+    func CheckParserErrors(parser: Parser){
+        let errors = parser.errors
+        guard errors.count > 0 else{
+            return
+        }
+        XCTFail("parser had \(errors.count)")
+        for error in errors{
+            XCTFail("parser error: \(error)")
+        }
+    }
+    
+    func testReturnStatements() throws{
+        let input =  """
+            return 5;
+            return 10;
+            return 993322;
+            """
+        var parser = Parser(lexer: Lexer(input: input))
+        let program = parser.parseProgram()
+        CheckParserErrors(parser: parser)
+        
+        guard program?.statements.count == 3 else{
+            XCTFail("program.Statements does not contain 3 statements. got \(program!.statements.count)")
+            return
+        }
+        
+        for statement in program!.statements{
+            guard statement.self is ReturnStatement else{
+                XCTFail("stmt not ReturnStatement. got \(statement)")
+                continue
+            }
+            guard statement.tokenLiteral() == "return" else{
+                XCTFail("returnStmt.TokenLiteral not 'return'. got \(statement.tokenLiteral())")
+                continue
+            }
+        }
     }
 }
 

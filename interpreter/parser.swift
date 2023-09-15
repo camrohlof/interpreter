@@ -49,40 +49,51 @@ struct Parser{
     mutating func parseStatement() -> Statement?{
         switch self.curToken{
             case .let: return self.parseLetStatement()
+            case .return: return self.parseReturnStatement()
             default: return nil
         }
     }
     
     mutating func parseLetStatement() -> LetStatement?{
         var stmt = LetStatement(token: self.curToken)
-        guard self.expectPeek(.ident("")) else{
+    
+        if case .ident = self.peekToken{
+            self.next()
+        }else{
             return nil
         }
         
         stmt.name = Identifier(token: self.curToken!, value: self.curToken!.literal)
-        guard self.expectPeek(.assign) else{
+
+        if case .assign = self.peekToken{
+            self.next()
+        }else{
             return nil
         }
+        
         while !self.curTokenIs(Token.semi){
             self.next()
         }
         return stmt
     }
     
-    func curTokenIs(_ t: Token) -> Bool{
-        return self.curToken == t
-    }
-    
-    func peekTokenIs(_ t: Token)-> Bool{
-        return self.peekToken.self == t
-    }
-    
-    mutating func expectPeek(_ t: Token) -> Bool{
-        if self.peekTokenIs(t){
+    mutating func parseReturnStatement() -> ReturnStatement{
+        let stmt = ReturnStatement(token: self.curToken)
+        
+        self.next()
+        
+        while !self.curTokenIs(.semi){
             self.next()
+        }
+        return stmt
+    }
+    
+    func curTokenIs(_ t: Token)->Bool{
+        if case self.curToken = t{
             return true
         }else{
             return false
         }
     }
+    
 }
