@@ -7,14 +7,14 @@
 
 import Foundation
 
-struct Parser{
+class Parser{
     var lexer: Lexer
     
     var curToken: Token?
     var peekToken: Token?
     var errors: [String]
     
-    var prefixParseFns: [Token.TokenType: () -> Expression]
+    var prefixParseFns: [Token.TokenType: () -> Expression?]
     var infixParseFns: [Token.TokenType: (Expression) -> Expression]
     
     enum Priority: Int{
@@ -33,28 +33,27 @@ struct Parser{
         self.next()
         self.next()
         
-        registerPrefix(Token.TokenType.ident, parseIdentifier)
+        prefixParseFns.updateValue(parseIdentifier, forKey:Token.TokenType.ident)
+        prefixParseFns.updateValue((parseIntegerLiteral), forKey:Token.TokenType.int)
+        prefixParseFns.updateValue((parsePrefixExpression), forKey: Token.TokenType.bang)
+        prefixParseFns.updateValue((parsePrefixExpression), forKey: Token.TokenType.minus)
     }
     
-    mutating func next(){
+    func next(){
         self.curToken = self.peekToken
         self.peekToken = self.lexer.next()
     }
     
-    mutating func registerPrefix(_ tokenType:Token.TokenType, _ fn:@escaping ()->Expression){
-        self.prefixParseFns[tokenType] = fn
-    }
-    
-    mutating func registerInfix(_ tokenType: Token.TokenType, _ fn:@escaping (Expression) -> Expression){
+    func registerInfix(_ tokenType: Token.TokenType, _ fn:@escaping (Expression) -> Expression){
         self.infixParseFns[tokenType] = fn
     }
     
-    mutating func peekError(_ t: Token){
+    func peekError(_ t: Token){
         let msg = "expected next token to be \(t), got \(self.peekToken!)"
         self.errors.append(msg)
     }
     
-    mutating func parseProgram() -> Program?{
+    func parseProgram() -> Program?{
         var program = Program(statements: [])
         while self.curToken != nil {
             if let stmt = self.parseStatement(){
@@ -66,7 +65,7 @@ struct Parser{
         return program
     }
     
-    mutating func parseStatement() -> Statement?{
+    func parseStatement() -> Statement?{
         switch self.curToken?.type{
             case .let: return self.parseLetStatement()
             case .return: return self.parseReturnStatement()
@@ -74,7 +73,7 @@ struct Parser{
         }
     }
     
-    mutating func parseLetStatement() -> LetStatement?{
+    func parseLetStatement() -> LetStatement?{
         var stmt = LetStatement(token: self.curToken)
     
         if case .ident = self.peekToken?.type{
@@ -97,7 +96,7 @@ struct Parser{
         return stmt
     }
     
-    mutating func parseReturnStatement() -> ReturnStatement{
+    func parseReturnStatement() -> ReturnStatement{
         let stmt = ReturnStatement(token: self.curToken)
         
         self.next()
@@ -108,7 +107,7 @@ struct Parser{
         return stmt
     }
     
-    mutating func parseExpressionStatement()-> ExpressionStatement{
+    func parseExpressionStatement()-> ExpressionStatement{
         var stmt = ExpressionStatement(token: self.curToken)
         
         stmt.expression = self.parseExpression(priority: Priority.lowest)
@@ -124,6 +123,7 @@ struct Parser{
         if let prefix = self.prefixParseFns[self.curToken!.type]{
             return prefix()
         }
+        self.noPrefixParseFnError(self.curToken!)
         return nil
     }
     
@@ -139,4 +139,27 @@ struct Parser{
         }
     }
     
+    func parseIntegerLiteral() -> Expression?{
+        var lit = IntegerLiteral(token: self.curToken!)
+        
+        if let value = Int(self.curToken!.literal!){
+            lit.value = value
+            return lit
+        }else{
+            let msg = "could not parse \(String(describing: self.curToken?.literal!)) as integer"
+            self.errors.append(msg)
+            return nil
+        }
+    }
+    
+    func parsePrefixExpression() -> Expression?{
+        var expression = PrefixExpression(token: self.curToken!, operatr: self.curToken!.literal!)
+        self.next()
+        expression.right = self.parseExpression(priority: .prefix)
+        return expression
+    }
+    
+    func noPrefixParseFnError(_ t: Token){
+        self.errors.append("no prefix parse function for \(t) found")
+    }
 }

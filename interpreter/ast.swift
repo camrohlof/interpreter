@@ -134,3 +134,38 @@ struct Identifier: Expression{
         return self.token.literal
     }
 }
+
+struct IntegerLiteral: Expression{
+    var token: Token
+    var value: Int?
+    
+    func expressionNode() {
+        return
+    }
+    
+    func tokenLiteral() -> String? {
+        return self.token.literal
+    }
+    
+    var description: String{
+        return self.token.literal!
+    }
+}
+
+struct PrefixExpression: Expression{
+    var token: Token
+    var operatr: String
+    var right: Expression?
+    
+    func expressionNode() {
+        return
+    }
+    
+    func tokenLiteral() -> String? {
+        return self.token.literal
+    }
+    
+    var description: String{
+        return "(\(self.operatr)\(self.right!.description))"
+    }
+}

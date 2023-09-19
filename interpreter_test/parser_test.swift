@@ -16,7 +16,7 @@ final class parser_test: XCTestCase {
         let foobar = 838383;
         """
         
-        var parser = Parser(lexer: Lexer(input: input))
+        let parser = Parser(lexer: Lexer(input: input))
         if let program = parser.parseProgram(){
             XCTAssertEqual(program.statements.count, 3)
             if program.statements.count != 3{
@@ -40,7 +40,7 @@ final class parser_test: XCTestCase {
     
     func TestLetStatement(_ stmt: Statement, _ name: String)->Bool{
         guard stmt.tokenLiteral() == "let" else{
-            XCTFail("tokenLiteral not 'let', got \(stmt.tokenLiteral())")
+            XCTFail("tokenLiteral not 'let', got \(String(describing: stmt.tokenLiteral()))")
             return false
         }
         
@@ -76,7 +76,7 @@ final class parser_test: XCTestCase {
             return 10;
             return 993322;
             """
-        var parser = Parser(lexer: Lexer(input: input))
+        let parser = Parser(lexer: Lexer(input: input))
         let program = parser.parseProgram()
         CheckParserErrors(parser: parser)
         
@@ -91,7 +91,7 @@ final class parser_test: XCTestCase {
                 continue
             }
             guard statement.tokenLiteral() == "return" else{
-                XCTFail("returnStmt.TokenLiteral not 'return'. got \(statement.tokenLiteral())")
+                XCTFail("returnStmt.TokenLiteral not 'return'. got \(String(describing: statement.tokenLiteral()))")
                 continue
             }
         }
@@ -100,7 +100,7 @@ final class parser_test: XCTestCase {
     func testIdentifierExpression() throws{
         let input = "foobar;"
         
-        var parser = Parser(lexer:Lexer(input:input))
+        let parser = Parser(lexer:Lexer(input:input))
         let program = parser.parseProgram()
         
         if let p = program{
@@ -122,6 +122,129 @@ final class parser_test: XCTestCase {
             XCTAssertEqual(ident?.tokenLiteral(), "foobar", "token literal isnt foobar")
         }else{
             XCTFail("program not parsed")
+        }
+    }
+    
+    func testIntegerLiteralExpression() throws{
+        let input = "5"
+        
+        let parser = Parser(lexer:Lexer(input: input))
+        let program = parser.parseProgram()
+        CheckParserErrors(parser: parser)
+        
+        if let p = program{
+            XCTAssertEqual(p.statements.count, 1, "program has not enough statements")
+            
+            XCTAssert(p.statements[0] is ExpressionStatement, "not an expression statement")
+            
+            let stmt = p.statements[0] as? ExpressionStatement;
+
+            XCTAssert(stmt?.expression is IntegerLiteral, "not an Integer literal")
+            
+            let literal = stmt?.expression as? IntegerLiteral
+            
+            guard literal!.value == 5 else{
+                XCTFail("int value not 5")
+                return
+            }
+            guard literal!.tokenLiteral() == "5" else{
+                XCTFail("literal value not '5'")
+                return
+            }
+        }else{
+            XCTFail("program not parsed")
+        }
+    }
+    
+    func testParsingPrefixExpressions() throws{
+        struct PrefixTest {
+            var input: String
+            var operatr: String
+            var integerValue: Int
+            
+            init(_ input: String, _ operatr: String, _ integerValue: Int) {
+                self.input = input
+                self.operatr = operatr
+                self.integerValue = integerValue
+            }
+        }
+        let prefixTests: [PrefixTest] = [
+            PrefixTest("!5", "!", 5),
+            PrefixTest("-15", "-", 15)
+        ]
+        
+        for ptest in prefixTests{
+            let parser = Parser(lexer: Lexer(input: ptest.input))
+            let program = parser.parseProgram()
+            
+            if let p = program{
+                guard p.statements.count == 1 else{
+                    XCTFail("program.Statements does not contain 1 statement. got \(p.statements.count)")
+                    return
+                }
+                let stmt = p.statements[0] as? ExpressionStatement
+                if let exp = stmt?.expression as? PrefixExpression{
+                    XCTAssertEqual(exp.operatr, ptest.operatr)
+                    XCTAssertTrue(TestIntegerLiteral(exp.right!, ptest.integerValue))
+                }
+            }else{
+                XCTFail("program not parsed")
+            }
+        }
+    }
+    
+    func TestIntegerLiteral(_ il: Expression, _ val: Int)-> Bool{
+        if let integ = il as? IntegerLiteral{
+            guard integ.value == val else{
+                return false
+            }
+            guard integ.tokenLiteral() == String(val) else{
+                return false
+            }
+            return true
+        }else{
+            return false
+        }
+    }
+    
+    func testParsingInfixExpressions(){
+        struct InfixTest{
+            var input: String
+            var leftValue: Int
+            var operatr: String
+            var rightValue: Int
+            
+            init(_ input: String,_ leftValue: Int,_ operatr: String,_ rightValue: Int) {
+                self.input = input
+                self.leftValue = leftValue
+                self.operatr = operatr
+                self.rightValue = rightValue
+            }
+        }
+        let infixTests: [InfixTest] = [
+            InfixTest("5 + 5;", 5, "+", 5),
+            InfixTest("5 - 5;", 5, "-", 5),
+            InfixTest("5 * 5;", 5, "*", 5),
+            InfixTest("5 / 5;", 5, "/", 5),
+            InfixTest("5 > 5;", 5, ">", 5),
+            InfixTest("5 < 5;", 5, "<", 5),
+            InfixTest("5 == 5;", 5, "==", 5),
+            InfixTest("5 != 5;", 5, "!=", 5),
+        ]
+        
+        for testi in infixTests{
+            let parser = Parser(lexer: Lexer(input: testi.input))
+            CheckParserErrors(parser: parser)
+            
+            if let program = parser.parseProgram(){
+                guard program.statements.count == 1 else{
+                    XCTFail("not enough statements")
+                    return
+                }
+            }
+            
+            
+            
         }
     }
 }
