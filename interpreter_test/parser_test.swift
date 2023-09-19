@@ -96,5 +96,33 @@ final class parser_test: XCTestCase {
             }
         }
     }
+    
+    func testIdentifierExpression() throws{
+        let input = "foobar;"
+        
+        var parser = Parser(lexer:Lexer(input:input))
+        let program = parser.parseProgram()
+        
+        if let p = program{
+            XCTAssertEqual(p.statements.count, 1, "not enough statements, got \(p.statements.count)")
+
+            XCTAssert(p.statements[0] is ExpressionStatement, "not an expression")
+            
+            let stmt = p.statements[0] as? ExpressionStatement
+            
+            XCTAssert(stmt?.expression is Identifier, "expression not identifier")
+            
+            let ident = stmt?.expression as? Identifier
+            guard ident?.value == "foobar" else{
+                XCTFail("value isn't foobar")
+                return
+            }
+            XCTAssertEqual(ident?.value, "foobar", "value isn't foobar")
+           
+            XCTAssertEqual(ident?.tokenLiteral(), "foobar", "token literal isnt foobar")
+        }else{
+            XCTFail("program not parsed")
+        }
+    }
 }
 

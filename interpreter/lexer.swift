@@ -59,42 +59,42 @@ struct Lexer: Sequence, IteratorProtocol{
             case "=":
             if self.peekChar() == "="{
                 currentIndex = input.index(after: currentIndex)
-                return .equal
+                return Token(type: .equal, literal:"==")
             }else{
-                return .assign
+                return Token(type:.assign, literal: "=")
             }
-            case "+": return .plus
-            case "-": return .minus
-            case "/": return .slash
-            case "!": 
+            case "+": return Token(type: .plus, literal: "+")
+            case "-": return Token(type: .minus, literal: "-")
+            case "/": return Token(type:.slash, literal: "/")
+            case "!":
                 if self.peekChar() == "="{
                     currentIndex = input.index(after: currentIndex)
-                    return .notEqual
+                    return Token(type:.notEqual, literal: "!=")
                 }else{
-                    return .bang
+                    return Token(type: .bang, literal: "!")
                 }
-            case "*": return .asterisk
-            case "<": return .lessThan
-            case ">": return .greaterThan
-            case "(": return .lParen
-            case ")": return .rParen
-            case "{": return .lSquirly
-            case "}": return .rSquirly
-            case ",": return .comma
-            case ";": return .semi
+            case "*": return Token(type: .asterisk, literal: "*")
+            case "<": return Token(type: .lessThan, literal: "<")
+            case ">": return Token(type: .greaterThan, literal: ">")
+            case "(": return Token(type: .lParen, literal: "(")
+            case ")": return Token(type: .rParen, literal: ")")
+            case "{": return Token(type: .lSquirly, literal: "{")
+            case "}": return Token(type: .rSquirly, literal: "}")
+            case ",": return Token(type: .comma, literal: ",")
+            case ";": return Token(type: .semi, literal: ";")
             case let char where char.isLetter:
-                let ident = input.identifier(from: currentIndex)
-                currentIndex = input.index(currentIndex, offsetBy: (ident.count - 1))
-                return keywords[ident, default: .ident(ident)]
+                let literal = input.identifier(from: currentIndex)
+                currentIndex = input.index(currentIndex, offsetBy: (literal.count - 1))
+                return keywords[literal, default:Token(type: .ident, literal: literal)]
             case let char where char.isNumber:
                 let numString = input.numberString(from: currentIndex)
                 guard let num = Int(numString) else {
-                    return .illegal(numString)
+                    return Token(type: .illegal, literal:numString)
                 }
                 currentIndex = input.index(currentIndex, offsetBy: numString.count - 1)
-                return .int(num)
+                return Token(type:.int, literal: String(num))
             default:
-                return .illegal(String(currentChar))
+                return Token(type: .illegal, literal:String(currentChar))
         }
     }
 }

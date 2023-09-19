@@ -8,7 +8,7 @@
 import Foundation
 
 protocol Node: CustomStringConvertible {
-    func tokenLiteral()-> String
+    func tokenLiteral()-> String?
 }
 
 protocol Statement:Node {
@@ -30,7 +30,7 @@ struct Program:Node {
         return out
     }
     
-    func tokenLiteral() ->String{
+    func tokenLiteral() ->String?{
         if self.statements.count > 0{
             return self.statements[0].tokenLiteral()
         }else{
@@ -47,7 +47,7 @@ struct LetStatement: Statement{
     var description: String {
         var out: String = ""
         
-        out.append(self.tokenLiteral()+" ")
+        out.append(self.tokenLiteral()!+" ")
         out.append(self.name!.value)
         out.append(" = ")
         
@@ -64,8 +64,8 @@ struct LetStatement: Statement{
         return
     }
     
-    func tokenLiteral() -> String {
-        return self.token!.literal
+    func tokenLiteral() -> String? {
+        return self.token!.literal!
     }
 }
 
@@ -76,7 +76,7 @@ struct ReturnStatement: Statement{
     var description: String{
         var out: String = ""
         
-        out.append(tokenLiteral() + " ")
+        out.append(tokenLiteral()! + " ")
         
         if let rv = returnValue{
             out.append(rv.description)
@@ -91,7 +91,7 @@ struct ReturnStatement: Statement{
         return
     }
     
-    func tokenLiteral() -> String {
+    func tokenLiteral() -> String?{
         return self.token!.literal
     }
 }
@@ -112,7 +112,7 @@ struct ExpressionStatement: Statement{
         return
     }
     
-    func tokenLiteral() -> String {
+    func tokenLiteral() -> String? {
         return self.token!.literal
     }
     
@@ -130,7 +130,7 @@ struct Identifier: Expression{
         return
     }
     
-    func tokenLiteral() -> String {
+    func tokenLiteral() -> String? {
         return self.token.literal
     }
 }
