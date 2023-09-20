@@ -21,6 +21,28 @@ class Parser{
         case lowest = 1, equals, lessGreater, sum, product, prefix, call
     }
     
+    let precedences: [Token.TokenType: Priority] = [
+        .equal: .equals,
+        .notEqual: .equals,
+        .lessThan: .lessGreater,
+        .greaterThan: .lessGreater,
+        .plus: .sum,
+        .minus: .sum,
+        .slash: .product,
+        .asterisk: .product,
+    ]
+    
+    let infixTokenTypes: [Token.TokenType] = [
+        .plus,
+        .minus,
+        .slash,
+        .asterisk,
+        .equal,
+        .notEqual,
+        .lessThan,
+        .greaterThan
+    ]
+    
     init(lexer: Lexer) {
         self.lexer = lexer
         self.curToken = nil
@@ -37,11 +59,31 @@ class Parser{
         prefixParseFns.updateValue((parseIntegerLiteral), forKey:Token.TokenType.int)
         prefixParseFns.updateValue((parsePrefixExpression), forKey: Token.TokenType.bang)
         prefixParseFns.updateValue((parsePrefixExpression), forKey: Token.TokenType.minus)
+    
+        for tt in infixTokenTypes{
+            infixParseFns.updateValue(parseInfixExpression, forKey: tt)
+        }
+        
+        
     }
     
     func next(){
         self.curToken = self.peekToken
         self.peekToken = self.lexer.next()
+    }
+    
+    func peekPrecedence() -> Priority{
+        if let p = precedences[self.peekToken!.type]{
+            return p
+        }
+        return .lowest
+    }
+    
+    func curPrecedence() -> Priority{
+        if let p = precedences[self.curToken!.type]{
+            return p
+        }
+        return .lowest
     }
     
     func registerInfix(_ tokenType: Token.TokenType, _ fn:@escaping (Expression) -> Expression){
@@ -120,8 +162,16 @@ class Parser{
     }
     
     func parseExpression(priority: Priority) -> Expression?{
+        var leftExp: Expression?
         if let prefix = self.prefixParseFns[self.curToken!.type]{
-            return prefix()
+            leftExp = prefix()
+            while self.peekToken != nil && self.peekToken!.type != .semi && priority.rawValue < self.peekPrecedence().rawValue{
+                if let infix = self.infixParseFns[self.peekToken!.type]{
+                    self.next()
+                    leftExp = infix(leftExp!)
+                }
+            }
+            return leftExp
         }
         self.noPrefixParseFnError(self.curToken!)
         return nil
@@ -161,5 +211,15 @@ class Parser{
     
     func noPrefixParseFnError(_ t: Token){
         self.errors.append("no prefix parse function for \(t) found")
+    }
+    
+    func parseInfixExpression(left: Expression)->Expression{
+        var expression = InfixExpression(token: self.curToken!, left: left, operatr: self.curToken!.literal!)
+        
+        let precedence = self.curPrecedence()
+        self.next()
+        expression.right = self.parseExpression(priority: precedence)
+        
+        return expression
     }
 }

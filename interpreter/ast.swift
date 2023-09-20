@@ -169,3 +169,22 @@ struct PrefixExpression: Expression{
         return "(\(self.operatr)\(self.right!.description))"
     }
 }
+
+struct InfixExpression: Expression{
+    var token: Token
+    var left: Expression?
+    var operatr: String
+    var right: Expression?
+    
+    func expressionNode() {
+        return
+    }
+    
+    func tokenLiteral() -> String? {
+        return self.token.literal
+    }
+    
+    var description: String{
+        return "(\(self.left!.description) \(self.operatr) \(self.right!.description))"
+    }
+}

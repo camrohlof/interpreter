@@ -232,8 +232,8 @@ final class parser_test: XCTestCase {
             InfixTest("5 != 5;", 5, "!=", 5),
         ]
         
-        for testi in infixTests{
-            let parser = Parser(lexer: Lexer(input: testi.input))
+        for itest in infixTests{
+            let parser = Parser(lexer: Lexer(input: itest.input))
             CheckParserErrors(parser: parser)
             
             if let program = parser.parseProgram(){
@@ -241,10 +241,104 @@ final class parser_test: XCTestCase {
                     XCTFail("not enough statements")
                     return
                 }
+                
+                if let stmt = program.statements[0] as? ExpressionStatement{
+                    
+                    if let exp = stmt.expression as? InfixExpression{
+                        XCTAssertTrue(TestIntegerLiteral(exp.left!, itest.leftValue))
+                        
+                        guard exp.operatr == itest.operatr else{
+                            XCTFail()
+                            return
+                        }
+                        
+                        XCTAssertTrue(TestIntegerLiteral(exp.right!, itest.rightValue))
+                    }else{
+                        XCTFail()
+                        return
+                    }
+                }else{
+                    XCTFail()
+                    return
+                }
+            }else{
+                XCTFail()
+                return
             }
+        }
+    }
+    
+    func testOperatorPrecedenceParsing(){
+        struct PrecedenceTest{
+            var input: String
+            var expected: String
             
+            init(_ input: String,_ expected: String) {
+                self.input = input
+                self.expected = expected
+            }
+        }
+        let tests:[PrecedenceTest] = [
+            PrecedenceTest(
+                "-a * b",
+                "((-a) * b)"
+            ),
+            PrecedenceTest(
+                "!-a",
+                "(!(-a))"
+            ),
+            PrecedenceTest(
+                "a + b + c",
+                "((a + b) + c)"
+            ),
+            PrecedenceTest(
+                "a + b - c",
+                "((a + b) - c)"
+            ),
+            PrecedenceTest(
+                "a * b * c",
+                "((a * b) * c)"
+            ),
+            PrecedenceTest(
+                "a * b / c",
+                "((a * b) / c)"
+            ),
+            PrecedenceTest(
+                "a + b / c",
+                "(a + (b / c))"
+            ),
+            PrecedenceTest(
+                "a + b * c + d / e - f",
+                "(((a + (b * c)) + (d / e)) - f)"
+            ),
+            PrecedenceTest(
+                "3 + 4; -5 * 5",
+                "(3 + 4)((-5) * 5)"
+            ),
+            PrecedenceTest(
+                "5 > 4 == 3 < 4",
+                "((5 > 4) == (3 < 4))"
+            ),
+            PrecedenceTest(
+                "5 < 4 != 3 > 4",
+                "((5 < 4) != (3 > 4))"
+            ),
+            PrecedenceTest(
+                "3 + 4 * 5 == 3 * 1 + 4 * 5",
+                "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"
+            ),
+        ]
+        
+        for test in tests{
+            let parser = Parser(lexer: Lexer(input: test.input))
+            let program = parser.parseProgram()
+            CheckParserErrors(parser: parser)
             
-            
+            let actual = program!.description
+            if actual.elementsEqual(test.expected){
+                XCTFail("expected \(test.expected), got \(actual)")
+                return
+            }
         }
     }
 }
